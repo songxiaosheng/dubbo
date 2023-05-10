@@ -59,12 +59,13 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
     private int bucketNum;
     private int timeWindowSeconds;
     private final Map<MetricsKeyWrapper, ConcurrentHashMap<MethodMetric, TimeWindowCounter>> methodTypeCounter = new ConcurrentHashMap<>();
-    private final ConcurrentMap<MethodMetric, TimeWindowQuantile> rt = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<MethodMetric, TimeWindowCounter> qps = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodMetric, TimeWindowQuantile> rtMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<MethodMetric, TimeWindowCounter> requestMap = new ConcurrentHashMap<>();
     private final ApplicationModel applicationModel;
     private static final Integer DEFAULT_COMPRESSION = 100;
     private static final Integer DEFAULT_BUCKET_NUM = 10;
     private static final Integer DEFAULT_TIME_WINDOW_SECONDS = 120;
+    private static final Integer QUANTILE_TOTAL = 1;
     private Boolean collectEnabled = null;
 
     public AggregateMetricsCollector(ApplicationModel applicationModel) {
@@ -87,7 +88,7 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
             this.collectEnabled = collectEnabled;
         }
     }
-    
+
 
     @Override
     public boolean isCollectEnabled() {
@@ -106,8 +107,8 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
     @Override
     public void onEvent(RequestEvent event) {
         MethodMetric metric = calcWindowCounter(event, MetricsKey.METRIC_REQUESTS);
-        TimeWindowCounter qpsCounter = ConcurrentHashMapUtils.computeIfAbsent(qps, metric, methodMetric -> new TimeWindowCounter(bucketNum, timeWindowSeconds));
-        qpsCounter.increment();
+        TimeWindowCounter requestCounter = ConcurrentHashMapUtils.computeIfAbsent(requestMap, metric, methodMetric -> new TimeWindowCounter(bucketNum, timeWindowSeconds));
+        requestCounter.increment();
     }
 
     @Override
@@ -135,7 +136,7 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
     private void onRTEvent(RequestEvent event) {
         MethodMetric metric = new MethodMetric(applicationModel.getApplicationName(), event.getAttachmentValue(MetricsConstants.INVOCATION));
         long responseTime = event.getTimePair().calc();
-        TimeWindowQuantile quantile = ConcurrentHashMapUtils.computeIfAbsent(rt, metric, k -> new TimeWindowQuantile(DEFAULT_COMPRESSION, bucketNum, timeWindowSeconds));
+        TimeWindowQuantile quantile = ConcurrentHashMapUtils.computeIfAbsent(rtMap, metric, k -> new TimeWindowQuantile(DEFAULT_COMPRESSION, bucketNum, timeWindowSeconds));
         quantile.add(responseTime);
     }
 
@@ -190,16 +191,22 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
     }
 
     private void collectQPS(List<MetricSample> list) {
-        qps.forEach((k, v) -> list.add(new GaugeMetricSample<>(MetricsKey.METRIC_QPS.getNameByType(k.getSide()),
+        requestMap.forEach((k, v) -> list.add(new GaugeMetricSample<>(MetricsKey.METRIC_QPS.getNameByType(k.getSide()),
             MetricsKey.METRIC_QPS.getDescription(), k.getTags(), QPS, v, value -> value.get() / value.bucketLivedSeconds())));
     }
 
     private void collectRT(List<MetricSample> list) {
-        rt.forEach((k, v) -> {
+        rtMap.forEach((k, v) -> {
             list.add(new GaugeMetricSample<>(MetricsKey.METRIC_RT_P99.getNameByType(k.getSide()),
                 MetricsKey.METRIC_RT_P99.getDescription(), k.getTags(), RT, v, value -> value.quantile(0.99)));
             list.add(new GaugeMetricSample<>(MetricsKey.METRIC_RT_P95.getNameByType(k.getSide()),
                 MetricsKey.METRIC_RT_P99.getDescription(), k.getTags(), RT, v, value -> value.quantile(0.95)));
+            TimeWindowCounter timeWindowCounter = requestMap.get(k);
+            if(timeWindowCounter == null){
+                return;
+            }
+            list.add(new GaugeMetricSample<>(MetricsKey.METRIC_RT_AVG_AGG.getNameByType(k.getSide()), MetricsKey.METRIC_RT_AVG_AGG.getDescription(),
+                k.getTags(), RT, v, value -> value.quantile(QUANTILE_TOTAL) / timeWindowCounter.get()));
         });
     }
 

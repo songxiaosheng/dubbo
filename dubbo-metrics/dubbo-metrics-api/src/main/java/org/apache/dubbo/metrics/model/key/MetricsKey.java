@@ -53,6 +53,7 @@ public enum MetricsKey {
     METRIC_RT_MAX("dubbo.%s.rt.milliseconds.max", "Max Response Time"),
     METRIC_RT_SUM("dubbo.%s.rt.milliseconds.sum", "Sum Response Time"),
     METRIC_RT_AVG("dubbo.%s.rt.milliseconds.avg", "Average Response Time"),
+    METRIC_RT_AVG_AGG("dubbo.%s.rt.milliseconds.avg.aggregate", "Aggregate Average Response Time"),
     METRIC_RT_P99("dubbo.%s.rt.milliseconds.p99", "Response Time P99"),
     METRIC_RT_P95("dubbo.%s.rt.milliseconds.p95", "Response Time P95"),
 
