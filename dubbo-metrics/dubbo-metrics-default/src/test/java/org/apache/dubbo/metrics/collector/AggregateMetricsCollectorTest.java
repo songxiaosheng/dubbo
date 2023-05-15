@@ -171,7 +171,6 @@ class AggregateMetricsCollectorTest {
         metricsFilter.onResponse(result, new TestMetricsInvoker(side), invocation);
 
 
-
         List<MetricSample> samples = collector.collect();
         for (MetricSample sample : samples) {
             Map<String, String> tags = sample.getTags();
@@ -232,6 +231,34 @@ class AggregateMetricsCollectorTest {
 
         Assertions.assertEquals(QPS, sample.getCategory());
         Assertions.assertEquals(10000, ((TimeWindowCounter) ((GaugeMetricSample<?>) sample).getValue()).get());
+    }
+
+    @Test
+    void testAggAvgTime() throws InterruptedException {
+
+
+        AggregateMetricsCollector collector = new AggregateMetricsCollector(applicationModel);
+
+        //采集指标
+        RequestEvent event = RequestEvent.toRequestEvent(applicationModel, invocation);
+        collector.onEvent(event);
+        Thread.sleep(10);
+        event.getTimePair().end();;
+        collector.onEventFinish(event);
+        //输出指标
+        List<MetricSample> collect = collector.collect();
+        collect.stream().filter(metricSample -> metricSample.getName()
+            .equals(MetricsKey.METRIC_RT_AVG_AGG.getNameByType(side))).forEach(metricSample -> {
+            GaugeMetricSample<?> sample = (GaugeMetricSample<?>) metricSample;
+            long l = sample.applyAsLong();
+            System.out.println(l);
+        });
+
+        List<MetricSample> collectedAvg = new ArrayList<>();
+        ReflectionUtils.invoke(collector, "collectAvg", collectedAvg);
+
+        Assertions.assertFalse(collectedAvg.isEmpty());
+        Assertions.assertEquals(1, collectedAvg.size());
     }
 
     @Test

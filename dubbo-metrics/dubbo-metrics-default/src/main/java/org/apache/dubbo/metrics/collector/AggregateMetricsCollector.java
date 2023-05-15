@@ -205,8 +205,13 @@ public class AggregateMetricsCollector implements MetricsCollector<RequestEvent>
             if(timeWindowCounter == null){
                 return;
             }
-            list.add(new GaugeMetricSample<>(MetricsKey.METRIC_RT_AVG_AGG.getNameByType(k.getSide()), MetricsKey.METRIC_RT_AVG_AGG.getDescription(),
-                k.getTags(), RT, v, value -> value.quantile(QUANTILE_TOTAL) / timeWindowCounter.get()));
+            double quantile = v.quantile(QUANTILE_TOTAL);
+            double v1 = timeWindowCounter.get();
+            double avg = quantile / v1;
+            list.add(new GaugeMetricSample<>(MetricsKey.METRIC_RT_AVG_AGG.getNameByType(k.getSide()),
+                MetricsKey.METRIC_RT_AVG_AGG.getDescription(),
+                k.getTags(), RT, avg, value -> value));
+
         });
     }
 
