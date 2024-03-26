@@ -14,15 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.dubbo.metrics.report;
 
+import org.apache.dubbo.metrics.model.MethodMetric;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 
 /**
  * Store public information such as application
  */
 public abstract class AbstractMetricsExport implements MetricsExport {
+
+    private volatile Boolean serviceLevel;
 
     private final ApplicationModel applicationModel;
 
@@ -36,5 +38,20 @@ public abstract class AbstractMetricsExport implements MetricsExport {
 
     public String getAppName() {
         return getApplicationModel().getApplicationName();
+    }
+
+    protected boolean getServiceLevel() {
+        initServiceLevelConfig();
+        return this.serviceLevel;
+    }
+
+    private void initServiceLevelConfig() {
+        if (serviceLevel == null) {
+            synchronized (this) {
+                if (serviceLevel == null) {
+                    this.serviceLevel = MethodMetric.isServiceLevel(getApplicationModel());
+                }
+            }
+        }
     }
 }

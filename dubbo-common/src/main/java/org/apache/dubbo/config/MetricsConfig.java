@@ -72,11 +72,9 @@ public class MetricsConfig extends AbstractConfig {
     private Boolean enableCollectorSync;
 
     /**
-     * @deprecated After metrics config is refactored.
-     * This parameter should no longer use and will be deleted in the future.
+     * Collector sync period.
      */
-    @Deprecated
-    private String port;
+    private Integer collectorSyncPeriod;
 
     /**
      * The prometheus metrics config
@@ -102,6 +100,9 @@ public class MetricsConfig extends AbstractConfig {
      */
     private Boolean useGlobalRegistry;
 
+    /**
+     * Enable rpc metrics.
+     */
     private Boolean enableRpc;
 
     /**
@@ -109,9 +110,7 @@ public class MetricsConfig extends AbstractConfig {
      */
     private String rpcLevel;
 
-
-    public MetricsConfig() {
-    }
+    public MetricsConfig() {}
 
     public MetricsConfig(ApplicationModel applicationModel) {
         super(applicationModel);
@@ -158,14 +157,6 @@ public class MetricsConfig extends AbstractConfig {
 
     public void setEnableRegistry(Boolean enableRegistry) {
         this.enableRegistry = enableRegistry;
-    }
-
-    public String getPort() {
-        return port;
-    }
-
-    public void setPort(String port) {
-        this.port = port;
     }
 
     public PrometheusConfig getPrometheus() {
@@ -246,6 +237,14 @@ public class MetricsConfig extends AbstractConfig {
 
     public void setEnableCollectorSync(Boolean enableCollectorSync) {
         this.enableCollectorSync = enableCollectorSync;
+    }
+
+    public Integer getCollectorSyncPeriod() {
+        return collectorSyncPeriod;
+    }
+
+    public void setCollectorSyncPeriod(Integer collectorSyncPeriod) {
+        this.collectorSyncPeriod = collectorSyncPeriod;
     }
 
     public Boolean getUseGlobalRegistry() {

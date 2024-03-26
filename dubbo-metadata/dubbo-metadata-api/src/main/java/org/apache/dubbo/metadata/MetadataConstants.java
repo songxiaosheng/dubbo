@@ -16,7 +16,6 @@
  */
 package org.apache.dubbo.metadata;
 
-
 public interface MetadataConstants {
     String KEY_SEPARATOR = ":";
     String DEFAULT_PATH_TAG = "metadata";
@@ -29,4 +28,6 @@ public interface MetadataConstants {
     String REPORT_CONSUMER_URL_KEY = "report-consumer-definition";
 
     String PATH_SEPARATOR = "/";
+
+    String NAMESPACE_KEY = "namespace";
 }

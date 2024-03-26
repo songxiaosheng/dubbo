@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.config;
 
+import org.apache.dubbo.common.serialization.PreferSerializationProvider;
 import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.config.support.Parameter;
@@ -29,7 +30,6 @@ import static org.apache.dubbo.common.constants.CommonConstants.DUBBO_PROTOCOL;
 import static org.apache.dubbo.common.constants.CommonConstants.SSL_ENABLED_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.THREAD_POOL_EXHAUSTED_LISTENERS_KEY;
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.COMMON_UNEXPECTED_EXCEPTION;
-import static org.apache.dubbo.common.constants.ProviderConstants.DEFAULT_PREFER_SERIALIZATION;
 
 /**
  * ProtocolConfig
@@ -94,7 +94,6 @@ public class ProtocolConfig extends AbstractConfig {
      * Thread pool's queue length
      */
     private Integer queues;
-
 
     /**
      * Thread pool exhausted listeners
@@ -206,7 +205,7 @@ public class ProtocolConfig extends AbstractConfig {
     /**
      * whether it is a persistent connection
      */
-    //TODO add this to provider config
+    // TODO add this to provider config
     private Boolean keepAlive;
 
     // TODO add this to provider config
@@ -229,8 +228,7 @@ public class ProtocolConfig extends AbstractConfig {
      */
     private String extProtocol;
 
-    public ProtocolConfig() {
-    }
+    public ProtocolConfig() {}
 
     public ProtocolConfig(ApplicationModel applicationModel) {
         super(applicationModel);
@@ -264,7 +262,12 @@ public class ProtocolConfig extends AbstractConfig {
         }
 
         if (StringUtils.isBlank(preferSerialization)) {
-            preferSerialization = serialization != null ? serialization : DEFAULT_PREFER_SERIALIZATION;
+            preferSerialization = serialization != null
+                    ? serialization
+                    : getScopeModel()
+                            .getBeanFactory()
+                            .getBean(PreferSerializationProvider.class)
+                            .getPreferSerialization();
         }
     }
 
@@ -617,20 +620,20 @@ public class ProtocolConfig extends AbstractConfig {
         try {
             Map<String, Object> protocolConfigMap = CollectionUtils.objToMap(sourceConfig);
             for (Field targetField : targetFields) {
-                Optional.ofNullable(protocolConfigMap.get(targetField.getName())).ifPresent(value -> {
-                    try {
-                        targetField.setAccessible(true);
-                        if (targetField.get(this) == null) {
-                            targetField.set(this, value);
-                        }
-                    } catch (IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                Optional.ofNullable(protocolConfigMap.get(targetField.getName()))
+                        .ifPresent(value -> {
+                            try {
+                                targetField.setAccessible(true);
+                                if (targetField.get(this) == null) {
+                                    targetField.set(this, value);
+                                }
+                            } catch (IllegalAccessException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
             }
         } catch (Exception e) {
             logger.error(COMMON_UNEXPECTED_EXCEPTION, "", "", "merge protocol config fail, error: ", e);
         }
     }
-
 }

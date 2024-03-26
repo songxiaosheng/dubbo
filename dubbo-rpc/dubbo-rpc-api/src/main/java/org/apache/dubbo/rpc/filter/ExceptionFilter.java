@@ -18,6 +18,7 @@ package org.apache.dubbo.rpc.filter;
 
 import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.common.extension.Activate;
+import org.apache.dubbo.common.extension.DisableInject;
 import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.utils.ReflectUtils;
@@ -34,7 +35,6 @@ import org.apache.dubbo.rpc.support.RpcUtils;
 import java.lang.reflect.Method;
 
 import static org.apache.dubbo.common.constants.LoggerCodeConstants.CONFIG_FILTER_VALIDATION_EXCEPTION;
-
 
 /**
  * ExceptionInvokerFilter
@@ -67,7 +67,8 @@ public class ExceptionFilter implements Filter, Filter.Listener {
                 }
                 // directly throw if the exception appears in the signature
                 try {
-                    Method method = invoker.getInterface().getMethod(RpcUtils.getMethodName(invocation), invocation.getParameterTypes());
+                    Method method = invoker.getInterface()
+                            .getMethod(RpcUtils.getMethodName(invocation), invocation.getParameterTypes());
                     Class<?>[] exceptionClasses = method.getExceptionTypes();
                     for (Class<?> exceptionClass : exceptionClasses) {
                         if (exception.getClass().equals(exceptionClass)) {
@@ -79,10 +80,16 @@ public class ExceptionFilter implements Filter, Filter.Listener {
                 }
 
                 // for the exception not found in method's signature, print ERROR message in server's log.
-                logger.error(CONFIG_FILTER_VALIDATION_EXCEPTION, "", "",
-                    "Got unchecked and undeclared exception which called by " + RpcContext.getServiceContext().getRemoteHost() +
-                        ". service: " + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation) +
-                        ", exception: " + exception.getClass().getName() + ": " + exception.getMessage(), exception);
+                logger.error(
+                        CONFIG_FILTER_VALIDATION_EXCEPTION,
+                        "",
+                        "",
+                        "Got unchecked and undeclared exception which called by "
+                                + RpcContext.getServiceContext().getRemoteHost() + ". service: "
+                                + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation)
+                                + ", exception: "
+                                + exception.getClass().getName() + ": " + exception.getMessage(),
+                        exception);
 
                 // directly throw if exception class and interface class are in the same jar file.
                 String serviceFile = ReflectUtils.getCodeBase(invoker.getInterface());
@@ -92,7 +99,9 @@ public class ExceptionFilter implements Filter, Filter.Listener {
                 }
                 // directly throw if it's JDK exception
                 String className = exception.getClass().getName();
-                if (className.startsWith("java.") || className.startsWith("javax.") || className.startsWith("jakarta.")) {
+                if (className.startsWith("java.")
+                        || className.startsWith("javax.")
+                        || className.startsWith("jakarta.")) {
                     return;
                 }
                 // directly throw if it's dubbo exception
@@ -103,25 +112,37 @@ public class ExceptionFilter implements Filter, Filter.Listener {
                 // otherwise, wrap with RuntimeException and throw back to the client
                 appResponse.setException(new RuntimeException(StringUtils.toString(exception)));
             } catch (Throwable e) {
-                logger.warn(CONFIG_FILTER_VALIDATION_EXCEPTION, "", "",
-                    "Fail to ExceptionFilter when called by " + RpcContext.getServiceContext().getRemoteHost() +
-                        ". service: " + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation) +
-                        ", exception: " + e.getClass().getName() + ": " + e.getMessage(), e);
+                logger.warn(
+                        CONFIG_FILTER_VALIDATION_EXCEPTION,
+                        "",
+                        "",
+                        "Fail to ExceptionFilter when called by "
+                                + RpcContext.getServiceContext().getRemoteHost() + ". service: "
+                                + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation)
+                                + ", exception: "
+                                + e.getClass().getName() + ": " + e.getMessage(),
+                        e);
             }
         }
     }
 
     @Override
     public void onError(Throwable e, Invoker<?> invoker, Invocation invocation) {
-        logger.error(CONFIG_FILTER_VALIDATION_EXCEPTION, "", "",
-            "Got unchecked and undeclared exception which called by " + RpcContext.getServiceContext().getRemoteHost() +
-                ". service: " + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation) +
-                ", exception: " + e.getClass().getName() + ": " + e.getMessage(), e);
+        logger.error(
+                CONFIG_FILTER_VALIDATION_EXCEPTION,
+                "",
+                "",
+                "Got unchecked and undeclared exception which called by "
+                        + RpcContext.getServiceContext().getRemoteHost() + ". service: "
+                        + invoker.getInterface().getName() + ", method: " + RpcUtils.getMethodName(invocation)
+                        + ", exception: "
+                        + e.getClass().getName() + ": " + e.getMessage(),
+                e);
     }
 
     // For test purpose
-    public void setLogger(ErrorTypeAwareLogger logger) {
+    @DisableInject
+    public void mockLogger(ErrorTypeAwareLogger logger) {
         this.logger = logger;
     }
 }
-

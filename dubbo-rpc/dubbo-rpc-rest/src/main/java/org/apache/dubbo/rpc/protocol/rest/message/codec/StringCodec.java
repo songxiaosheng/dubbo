@@ -28,9 +28,8 @@ import java.nio.charset.StandardCharsets;
 /**
  *  body is string
  */
-@Activate("string")
+@Activate(value = "string", order = 200)
 public class StringCodec implements HttpMessageCodec<byte[], OutputStream> {
-
 
     @Override
     public Object decode(byte[] body, Class<?> targetType, Type type) throws Exception {
@@ -41,7 +40,7 @@ public class StringCodec implements HttpMessageCodec<byte[], OutputStream> {
     }
 
     @Override
-    public boolean contentTypeSupport(MediaType mediaType,Class<?> targetType) {
+    public boolean contentTypeSupport(MediaType mediaType, Class<?> targetType) {
         return String.class.equals(targetType);
     }
 
@@ -55,10 +54,8 @@ public class StringCodec implements HttpMessageCodec<byte[], OutputStream> {
         return MediaType.TEXT_PLAIN;
     }
 
-
     @Override
     public void encode(OutputStream outputStream, Object unSerializedBody, URL url) throws Exception {
         outputStream.write(((String) unSerializedBody).getBytes(StandardCharsets.UTF_8));
     }
-
 }

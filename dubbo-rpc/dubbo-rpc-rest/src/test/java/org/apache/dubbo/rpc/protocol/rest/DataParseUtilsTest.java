@@ -17,10 +17,12 @@
 package org.apache.dubbo.rpc.protocol.rest;
 
 import org.apache.dubbo.rpc.protocol.rest.util.DataParseUtils;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class DataParseUtilsTest {
     @Test
@@ -29,10 +31,8 @@ public class DataParseUtilsTest {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         DataParseUtils.writeJsonContent(User.getInstance(), byteArrayOutputStream);
 
-        Assertions.assertEquals("{\"age\":18,\"id\":404,\"name\":\"dubbo\"}",
-            new String(byteArrayOutputStream.toByteArray()));
-
-
+        Assertions.assertEquals(
+                "{\"age\":18,\"id\":404,\"name\":\"dubbo\"}", new String(byteArrayOutputStream.toByteArray()));
     }
 
     @Test
@@ -56,7 +56,15 @@ public class DataParseUtilsTest {
         convert = DataParseUtils.stringTypeConvert(Integer.class, "1");
 
         Assertions.assertEquals(1, convert);
+    }
 
-
+    @Test
+    void testParseAcceptCharset() {
+        String[] parsed = DataParseUtils.parseAcceptCharset(Arrays.asList("iso-8859-1"));
+        Assertions.assertTrue(Arrays.equals(parsed, new String[] {"iso-8859-1"}));
+        parsed = DataParseUtils.parseAcceptCharset(Arrays.asList("utf-8, iso-8859-1;q=0.5"));
+        Assertions.assertTrue(Arrays.equals(parsed, new String[] {"utf-8", "iso-8859-1"}));
+        parsed = DataParseUtils.parseAcceptCharset(Arrays.asList("utf-8, iso-8859-1;q=0.5, *;q=0.1", "utf-16;q=0.5"));
+        Assertions.assertEquals("utf-8", parsed[0]);
     }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.dubbo.rpc.protocol.rest.util;
 
+import org.apache.dubbo.common.lang.Nullable;
+import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.JsonUtils;
 import org.apache.dubbo.common.utils.StringUtils;
 
@@ -29,9 +31,16 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
+
+import static org.apache.dubbo.rpc.protocol.rest.constans.RestConstant.WEIGHT_IDENTIFIER;
 
 public class DataParseUtils {
 
@@ -58,7 +67,6 @@ public class DataParseUtils {
         }
 
         return value;
-
     }
 
     public static boolean isTextType(Class targetType) {
@@ -66,11 +74,12 @@ public class DataParseUtils {
             return false;
         }
 
-        return targetType == Boolean.class || targetType == boolean.class ||
-            targetType == String.class ||
-            Number.class.isAssignableFrom(targetType) || targetType.isPrimitive();
+        return targetType == Boolean.class
+                || targetType == boolean.class
+                || targetType == String.class
+                || Number.class.isAssignableFrom(targetType)
+                || targetType.isPrimitive();
     }
-
 
     /**
      * content-type text
@@ -149,13 +158,11 @@ public class DataParseUtils {
         }
 
         return object.toString().getBytes();
-
     }
 
     public static Object jsonConvert(Type targetType, byte[] body) throws Exception {
         return JsonUtils.toJavaObject(new String(body, StandardCharsets.UTF_8), targetType);
     }
-
 
     public static Object multipartFormConvert(byte[] body, Charset charset, Class<?> targetType) throws Exception {
         String[] pairs = tokenizeToStringArray(new String(body, StandardCharsets.UTF_8), "&");
@@ -178,13 +185,12 @@ public class DataParseUtils {
         return multipartFormConvert(body, Charset.defaultCharset(), targetType);
     }
 
-
     public static String[] tokenizeToStringArray(String str, String delimiters) {
         return tokenizeToStringArray(str, delimiters, true, true);
     }
 
-    public static String[] tokenizeToStringArray(String str, String delimiters, boolean trimTokens,
-                                                 boolean ignoreEmptyTokens) {
+    public static String[] tokenizeToStringArray(
+            String str, String delimiters, boolean trimTokens, boolean ignoreEmptyTokens) {
         if (str == null) {
             return null;
         } else {
@@ -211,5 +217,33 @@ public class DataParseUtils {
 
     public static String[] toStringArray(Collection<String> collection) {
         return collection == null ? null : collection.toArray(new String[collection.size()]);
+    }
+
+    @Nullable
+    public static String[] parseAcceptCharset(List<String> acceptCharsets) {
+        if (CollectionUtils.isEmpty(acceptCharsets)) {
+            return new String[0];
+        }
+
+        SortedMap<Float, Set<String>> encodings = new TreeMap<>(Comparator.reverseOrder());
+        float defaultWeight = 1.0f;
+        for (String acceptCharset : acceptCharsets) {
+            String[] charsets = acceptCharset.split(",");
+            for (String charset : charsets) {
+                charset = charset.trim();
+                float weight = defaultWeight;
+                String enc = charset;
+                if (charset.contains(WEIGHT_IDENTIFIER)) {
+                    String[] split = charset.split(WEIGHT_IDENTIFIER);
+                    enc = split[0];
+                    weight = Float.parseFloat(split[1]);
+                }
+                encodings.computeIfAbsent(weight, k -> new HashSet<>()).add(enc);
+            }
+        }
+
+        List<String> result = new ArrayList<>();
+        encodings.values().forEach(result::addAll);
+        return result.toArray(new String[0]);
     }
 }

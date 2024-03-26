@@ -25,11 +25,13 @@ import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
 import org.apache.dubbo.common.logger.LoggerFactory;
 import org.apache.dubbo.common.resource.Disposable;
 import org.apache.dubbo.common.utils.ConcurrentHashMapUtils;
+import org.apache.dubbo.common.utils.ConcurrentHashSet;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.rpc.model.ScopeModelAccessor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -53,7 +55,7 @@ public class ScopeBeanFactory {
     private final List<BeanInfo> registeredBeanInfos = new CopyOnWriteArrayList<>();
     private InstantiationStrategy instantiationStrategy;
     private final AtomicBoolean destroyed = new AtomicBoolean();
-    private List<Class<?>> registeredClasses = new ArrayList<>();
+    private final Set<Class<?>> registeredClasses = new ConcurrentHashSet<>();
 
     public ScopeBeanFactory(ScopeBeanFactory parent, ExtensionAccessor extensionAccessor) {
         this.parent = parent;
@@ -86,7 +88,8 @@ public class ScopeBeanFactory {
         checkDestroyed();
         T instance = getBean(name, clazz);
         if (instance != null) {
-            throw new ScopeBeanException("already exists bean with same name and type, name=" + name + ", type=" + clazz.getName());
+            throw new ScopeBeanException(
+                    "already exists bean with same name and type, name=" + name + ", type=" + clazz.getName());
         }
         try {
             instance = instantiationStrategy.instantiate(clazz);
@@ -140,7 +143,8 @@ public class ScopeBeanFactory {
         return getOrRegisterBean(null, type, mappingFunction);
     }
 
-    public <T> T getOrRegisterBean(String name, Class<T> type, Function<? super Class<T>, ? extends T> mappingFunction) {
+    public <T> T getOrRegisterBean(
+            String name, Class<T> type, Function<? super Class<T>, ? extends T> mappingFunction) {
         T bean = getBean(name, type);
         if (bean == null) {
             // lock by type
@@ -155,11 +159,6 @@ public class ScopeBeanFactory {
         return bean;
     }
 
-    public <T> T initializeBean(T bean) {
-        this.initializeBean(null, bean);
-        return bean;
-    }
-
     private void initializeBean(String name, Object bean) {
         checkDestroyed();
         try {
@@ -170,14 +169,16 @@ public class ScopeBeanFactory {
                 processor.postProcessAfterInitialization(bean, name);
             }
         } catch (Exception e) {
-            throw new ScopeBeanException("register bean failed! name=" + name + ", type=" + bean.getClass().getName(), e);
+            throw new ScopeBeanException(
+                    "register bean failed! name=" + name + ", type="
+                            + bean.getClass().getName(),
+                    e);
         }
     }
 
     private boolean containsBean(String name, Object bean) {
         for (BeanInfo beanInfo : registeredBeanInfos) {
-            if (beanInfo.instance == bean &&
-                (name == null || StringUtils.isEquals(name, beanInfo.name))) {
+            if (beanInfo.instance == bean && (name == null || StringUtils.isEquals(name, beanInfo.name))) {
                 return true;
             }
         }
@@ -185,12 +186,16 @@ public class ScopeBeanFactory {
     }
 
     private int getNextId(Class<?> beanClass) {
-        return ConcurrentHashMapUtils.computeIfAbsent(beanNameIdCounterMap, beanClass, key -> new AtomicInteger()).incrementAndGet();
+        return ConcurrentHashMapUtils.computeIfAbsent(beanNameIdCounterMap, beanClass, key -> new AtomicInteger())
+                .incrementAndGet();
     }
 
     @SuppressWarnings("unchecked")
     public <T> List<T> getBeansOfType(Class<T> type) {
-        List<T> currentBeans = (List<T>) registeredBeanInfos.stream().filter(beanInfo -> type.isInstance(beanInfo.instance)).map(beanInfo -> beanInfo.instance).collect(Collectors.toList());
+        List<T> currentBeans = (List<T>) registeredBeanInfos.stream()
+                .filter(beanInfo -> type.isInstance(beanInfo.instance))
+                .map(beanInfo -> beanInfo.instance)
+                .collect(Collectors.toList());
         if (parent != null) {
             currentBeans.addAll(parent.getBeansOfType(type));
         }
@@ -243,8 +248,10 @@ public class ScopeBeanFactory {
             if (candidates.size() == 1) {
                 return (T) candidates.get(0).instance;
             } else if (candidates.size() > 1) {
-                List<String> candidateBeanNames = candidates.stream().map(beanInfo -> beanInfo.name).collect(Collectors.toList());
-                throw new ScopeBeanException("expected single matching bean but found " + candidates.size() + " candidates for type [" + type.getName() + "]: " + candidateBeanNames);
+                List<String> candidateBeanNames =
+                        candidates.stream().map(beanInfo -> beanInfo.name).collect(Collectors.toList());
+                throw new ScopeBeanException("expected single matching bean but found " + candidates.size()
+                        + " candidates for type [" + type.getName() + "]: " + candidateBeanNames);
             }
         } else if (firstCandidate != null) {
             return (T) firstCandidate.instance;
@@ -260,7 +267,13 @@ public class ScopeBeanFactory {
                         Disposable beanInstance = (Disposable) beanInfo.instance;
                         beanInstance.destroy();
                     } catch (Throwable e) {
-                        LOGGER.error(CONFIG_FAILED_DESTROY_INVOKER, "", "", "An error occurred when destroy bean [name=" + beanInfo.name + ", bean=" + beanInfo.instance + "]: " + e, e);
+                        LOGGER.error(
+                                CONFIG_FAILED_DESTROY_INVOKER,
+                                "",
+                                "",
+                                "An error occurred when destroy bean [name=" + beanInfo.name + ", bean="
+                                        + beanInfo.instance + "]: " + e,
+                                e);
                     }
                 }
             }
@@ -288,7 +301,7 @@ public class ScopeBeanFactory {
         }
     }
 
-    public List<Class<?>> getRegisteredClasses() {
+    public Set<Class<?>> getRegisteredClasses() {
         return registeredClasses;
     }
 }

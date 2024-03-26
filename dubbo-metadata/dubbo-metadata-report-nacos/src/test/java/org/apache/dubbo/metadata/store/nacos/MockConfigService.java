@@ -17,6 +17,7 @@
 package org.apache.dubbo.metadata.store.nacos;
 
 import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.config.filter.IConfigFilter;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.alibaba.nacos.api.exception.NacosException;
 
@@ -32,9 +33,7 @@ public class MockConfigService implements ConfigService {
     }
 
     @Override
-    public void addListener(String dataId, String group, Listener listener) {
-
-    }
+    public void addListener(String dataId, String group, Listener listener) {}
 
     @Override
     public boolean publishConfig(String dataId, String group, String content) {
@@ -62,9 +61,7 @@ public class MockConfigService implements ConfigService {
     }
 
     @Override
-    public void removeListener(String dataId, String group, Listener listener) {
-
-    }
+    public void removeListener(String dataId, String group, Listener listener) {}
 
     @Override
     public String getServerStatus() {
@@ -72,7 +69,8 @@ public class MockConfigService implements ConfigService {
     }
 
     @Override
-    public void shutDown() {
+    public void shutDown() {}
 
-    }
+    @Override
+    public void addConfigFilter(IConfigFilter iConfigFilter) {}
 }

@@ -16,15 +16,19 @@
  */
 package org.apache.dubbo.rpc.protocol.rest.request;
 
-
 import org.apache.dubbo.common.utils.StringUtils;
+import org.apache.dubbo.rpc.protocol.rest.constans.RestConstant;
 import org.apache.dubbo.rpc.protocol.rest.deploy.ServiceDeployer;
+import org.apache.dubbo.rpc.protocol.rest.util.DataParseUtils;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.apache.dubbo.rpc.protocol.rest.constans.RestConstant.DEFAULT_CHARSET;
 
 /**
  * request facade for different request
@@ -52,13 +56,28 @@ public abstract class RequestFacade<T> {
         this.serviceDeployer = serviceDeployer;
     }
 
-    protected void initHeaders() {
-
-    }
-
+    protected void initHeaders() {}
 
     protected void initParameters() {
         String requestURI = getRequestURI();
+        String decodedRequestURI = null;
+
+        try {
+            String enc = DEFAULT_CHARSET;
+            ArrayList<String> charset = headers.get(RestConstant.ACCEPT_CHARSET);
+            // take the highest priority charset
+            String[] parsed = DataParseUtils.parseAcceptCharset(charset);
+            if (parsed != null && parsed.length > 0) {
+                enc = parsed[0].toUpperCase();
+            }
+            decodedRequestURI = URLDecoder.decode(requestURI, enc);
+        } catch (Throwable t) {
+            // do nothing, try best to deliver
+        }
+
+        if (StringUtils.isNotEmpty(decodedRequestURI)) {
+            requestURI = decodedRequestURI;
+        }
 
         if (requestURI != null && requestURI.contains("?")) {
 
@@ -84,7 +103,6 @@ public abstract class RequestFacade<T> {
                         parameters.put(name, values);
                     }
                     values.add(value);
-
                 }
             }
         } else {
@@ -92,21 +110,17 @@ public abstract class RequestFacade<T> {
         }
     }
 
-
     public T getRequest() {
         return request;
     }
 
     public abstract String getHeader(String name);
 
-
     public abstract Enumeration<String> getHeaders(String name);
-
 
     public abstract Enumeration<String> getHeaderNames();
 
     public abstract String getMethod();
-
 
     public abstract String getPath();
 

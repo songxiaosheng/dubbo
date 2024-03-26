@@ -128,7 +128,8 @@ public class ModuleConfig extends AbstractConfig {
     @Override
     protected void checkScopeModel(ScopeModel scopeModel) {
         if (!(scopeModel instanceof ModuleModel)) {
-            throw new IllegalArgumentException("Invalid scope model, expect to be a ModuleModel but got: " + scopeModel);
+            throw new IllegalArgumentException(
+                    "Invalid scope model, expect to be a ModuleModel but got: " + scopeModel);
         }
     }
 
@@ -217,7 +218,7 @@ public class ModuleConfig extends AbstractConfig {
 
     /**
      * Whether start module in background.
-     * If start in backgound, do not await finish on Spring ContextRefreshedEvent.
+     * If start in background, do not await finish on Spring ContextRefreshedEvent.
      *
      * @see org.apache.dubbo.config.spring.context.DubboDeployApplicationListener
      */

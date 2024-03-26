@@ -34,6 +34,7 @@ import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.InvokeMode;
 import org.apache.dubbo.rpc.Invoker;
 import org.apache.dubbo.rpc.Result;
+import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.RpcException;
 import org.apache.dubbo.rpc.RpcInvocation;
 import org.apache.dubbo.rpc.protocol.AbstractInvoker;
@@ -64,21 +65,21 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
 
     private final AtomicPositiveInteger index = new AtomicPositiveInteger();
 
-
     private final ReentrantLock destroyLock = new ReentrantLock();
 
     private final Set<Invoker<?>> invokers;
 
     private final int serverShutdownTimeout;
 
-    private static final boolean setFutureWhenSync = Boolean.parseBoolean(System.getProperty(CommonConstants.SET_FUTURE_IN_SYNC_MODE, "true"));
+    private static final boolean setFutureWhenSync =
+            Boolean.parseBoolean(System.getProperty(CommonConstants.SET_FUTURE_IN_SYNC_MODE, "true"));
 
     public DubboInvoker(Class<T> serviceType, URL url, ClientsProvider clientsProvider) {
         this(serviceType, url, clientsProvider, null);
     }
 
     public DubboInvoker(Class<T> serviceType, URL url, ClientsProvider clientsProvider, Set<Invoker<?>> invokers) {
-        super(serviceType, url, new String[]{INTERFACE_KEY, GROUP_KEY, TOKEN_KEY});
+        super(serviceType, url, new String[] {INTERFACE_KEY, GROUP_KEY, TOKEN_KEY});
         this.clientsProvider = clientsProvider;
         this.invokers = invokers;
         this.serverShutdownTimeout = ConfigurationUtils.getServerShutdownTimeout(getUrl().getScopeModel());
@@ -98,14 +99,18 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         } else {
             currentClient = exchangeClients.get(index.getAndIncrement() % exchangeClients.size());
         }
+        RpcContext.getServiceContext().setLocalAddress(currentClient.getLocalAddress());
         try {
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
 
             int timeout = RpcUtils.calculateTimeout(getUrl(), invocation, methodName, DEFAULT_TIMEOUT);
             if (timeout <= 0) {
-                return AsyncRpcResult.newDefaultAsyncResult(new RpcException(RpcException.TIMEOUT_TERMINATE,
-                    "No time left for making the following call: " + invocation.getServiceName() + "."
-                        + RpcUtils.getMethodName(invocation) + ", terminate directly."), invocation);
+                return AsyncRpcResult.newDefaultAsyncResult(
+                        new RpcException(
+                                RpcException.TIMEOUT_TERMINATE,
+                                "No time left for making the following call: " + invocation.getServiceName() + "."
+                                        + RpcUtils.getMethodName(invocation) + ", terminate directly."),
+                        invocation);
             }
 
             invocation.setAttachment(TIMEOUT_KEY, String.valueOf(timeout));
@@ -128,7 +133,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
                 request.setTwoWay(true);
                 ExecutorService executor = getCallbackExecutor(getUrl(), inv);
                 CompletableFuture<AppResponse> appResponseFuture =
-                    currentClient.request(request, timeout, executor).thenApply(AppResponse.class::cast);
+                        currentClient.request(request, timeout, executor).thenApply(AppResponse.class::cast);
                 // save for 2.6.x compatibility, for example, TraceFilter in Zipkin uses com.alibaba.xxx.FutureAdapter
                 if (setFutureWhenSync || ((RpcInvocation) invocation).getInvokeMode() != InvokeMode.SYNC) {
                     FutureContext.getContext().setCompatibleFuture(appResponseFuture);
@@ -138,9 +143,14 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
                 return result;
             }
         } catch (TimeoutException e) {
-            throw new RpcException(RpcException.TIMEOUT_EXCEPTION, "Invoke remote method timeout. method: " + RpcUtils.getMethodName(invocation) + ", provider: " + getUrl() + ", cause: " + e.getMessage(), e);
+            throw new RpcException(
+                    RpcException.TIMEOUT_EXCEPTION,
+                    "Invoke remote method timeout. method: " + RpcUtils.getMethodName(invocation) + ", provider: "
+                            + getUrl() + ", cause: " + e.getMessage(),
+                    e);
         } catch (RemotingException e) {
-            String remoteExpMsg = "Failed to invoke remote method: " + RpcUtils.getMethodName(invocation) + ", provider: " + getUrl() + ", cause: " + e.getMessage();
+            String remoteExpMsg = "Failed to invoke remote method: " + RpcUtils.getMethodName(invocation)
+                    + ", provider: " + getUrl() + ", cause: " + e.getMessage();
             if (e.getCause() instanceof IOException && e.getCause().getCause() instanceof SerializationException) {
                 throw new RpcException(RpcException.SERIALIZATION_EXCEPTION, remoteExpMsg, e);
             } else {
@@ -156,7 +166,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
         }
         for (ExchangeClient client : clientsProvider.getClients()) {
             if (client.isConnected() && !client.hasAttribute(Constants.CHANNEL_ATTRIBUTE_READONLY_KEY)) {
-                //cannot write == not Available ?
+                // cannot write == not Available ?
                 return true;
             }
         }

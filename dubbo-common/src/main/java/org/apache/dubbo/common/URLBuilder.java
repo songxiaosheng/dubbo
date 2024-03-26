@@ -17,6 +17,7 @@
 package org.apache.dubbo.common;
 
 import org.apache.dubbo.common.url.component.ServiceConfigURL;
+import org.apache.dubbo.common.utils.ArrayUtils;
 import org.apache.dubbo.common.utils.CollectionUtils;
 import org.apache.dubbo.common.utils.StringUtils;
 import org.apache.dubbo.rpc.model.ScopeModel;
@@ -85,24 +86,26 @@ public final class URLBuilder extends ServiceConfigURL {
         this(protocol, null, null, host, port, path, parameters);
     }
 
-    public URLBuilder(String protocol,
-                      String username,
-                      String password,
-                      String host,
-                      int port,
-                      String path,
-                      Map<String, String> parameters) {
+    public URLBuilder(
+            String protocol,
+            String username,
+            String password,
+            String host,
+            int port,
+            String path,
+            Map<String, String> parameters) {
         this(protocol, username, password, host, port, path, parameters, null);
     }
 
-    public URLBuilder(String protocol,
-                      String username,
-                      String password,
-                      String host,
-                      int port,
-                      String path,
-                      Map<String, String> parameters,
-                      Map<String, Object> attributes) {
+    public URLBuilder(
+            String protocol,
+            String username,
+            String password,
+            String host,
+            int port,
+            String path,
+            Map<String, String> parameters,
+            Map<String, Object> attributes) {
         this.protocol = protocol;
         this.username = username;
         this.password = password;
@@ -122,15 +125,7 @@ public final class URLBuilder extends ServiceConfigURL {
         String path = url.getPath();
         Map<String, String> parameters = new HashMap<>(url.getParameters());
         Map<String, Object> attributes = new HashMap<>(url.getAttributes());
-        return new URLBuilder(
-            protocol,
-            username,
-            password,
-            host,
-            port,
-            path,
-            parameters,
-            attributes);
+        return new URLBuilder(protocol, username, password, host, port, path, parameters, attributes);
     }
 
     public ServiceConfigURL build() {
@@ -382,7 +377,7 @@ public final class URLBuilder extends ServiceConfigURL {
 
     @Override
     public URLBuilder addParameters(String... pairs) {
-        if (pairs == null || pairs.length == 0) {
+        if (ArrayUtils.isEmpty(pairs)) {
             return this;
         }
         if (pairs.length % 2 != 0) {
@@ -422,7 +417,7 @@ public final class URLBuilder extends ServiceConfigURL {
 
     @Override
     public URLBuilder removeParameters(String... keys) {
-        if (keys == null || keys.length == 0) {
+        if (ArrayUtils.isEmpty(keys)) {
             return this;
         }
         for (String key : keys) {
@@ -464,7 +459,7 @@ public final class URLBuilder extends ServiceConfigURL {
             return false;
         }
         String value = getMethodParameter(method, key);
-        return value != null && value.length() > 0;
+        return StringUtils.isNotEmpty(value);
     }
 
     @Override

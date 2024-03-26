@@ -33,13 +33,12 @@ import java.util.Set;
 /**
  * body is json
  */
-@Activate("json")
+@Activate(value = "json", order = 100)
 public class JsonCodec implements HttpMessageCodec<byte[], OutputStream> {
     private static final Set<Class> unSupportClasses = new HashSet<>();
 
     static {
         unSupportClasses.add(byte[].class);
-        unSupportClasses.add(String.class);
     }
 
     public static void addUnSupportClass(Class<?> unSupportClass) {
@@ -65,7 +64,6 @@ public class JsonCodec implements HttpMessageCodec<byte[], OutputStream> {
     public MediaType contentType() {
         return MediaType.APPLICATION_JSON_VALUE;
     }
-
 
     @Override
     public void encode(OutputStream outputStream, Object unSerializedBody, URL url) throws Exception {
