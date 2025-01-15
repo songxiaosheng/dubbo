@@ -164,8 +164,8 @@
     <maven_gmavenplus_version>3.0.2</maven_gmavenplus_version>
 
     <!-- For unify spring boot 3 version -->
-    <spring-6.version>6.2.0</spring-6.version>
-    <spring-boot-3.version>3.4.0</spring-boot-3.version>
+    <spring-6.version>6.2.1</spring-6.version>
+    <spring-boot-3.version>3.4.1</spring-boot-3.version>
 
     <protobuf-protoc_version>3.22.3</protobuf-protoc_version>
     <grpc_version>1.54.0</grpc_version>
@@ -1096,7 +1096,7 @@
     <profile>
       <id>spring-boot-3</id>
       <properties>
-        <tomcat.version>10.1.31</tomcat.version>
+        <tomcat.version>10.1.34</tomcat.version>
       </properties>
       <dependencyManagement>
         <dependencies>
